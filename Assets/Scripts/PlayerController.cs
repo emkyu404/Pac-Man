@@ -14,6 +14,8 @@ public class PlayerController : MonoBehaviour
 
     public GameManager gameManager;
 
+    public bool isDead = false;
+
     // Start is called before the first frame update
     void Awake()
     {
@@ -27,13 +29,15 @@ public class PlayerController : MonoBehaviour
 
     public void Setup()
     {
+        isDead = false;
+        animator.SetBool("dead", false);
+        animator.SetBool("moving", false);
         movementController.currentNode = startNode;
         movementController.direction = "left";
         movementController.lastMovingDirection = "left";
         sprite.flipX = false;
         transform.position = startPos;
         animator.speed = 1;
-        animator.SetBool("moving", false);
     }
 
     public void Stop()
@@ -47,9 +51,14 @@ public class PlayerController : MonoBehaviour
 
         if(gameManager.gameIsRunning == false)
         {
+            if (!isDead)
+            {
+                animator.speed = 0;
+            }
             return;
         }
 
+        animator.speed = 1;
         animator.SetBool("moving", true);
         if (Input.GetKey(KeyCode.LeftArrow)) 
         {
@@ -92,5 +101,13 @@ public class PlayerController : MonoBehaviour
 
         sprite.flipY = flipY;
         sprite.flipX = flipX;
+    }
+
+    public void Death()
+    {
+        isDead = true;
+        animator.SetBool("moving", false);
+        animator.speed = 1;
+        animator.SetBool("dead", true);
     }
 }

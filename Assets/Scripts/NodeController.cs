@@ -31,6 +31,10 @@ public class NodeController : MonoBehaviour
 
     public bool isSideNode = false;
 
+    public bool isPowerPellet = false;
+
+    public float powerPelletBlinkingTimer = 0;
+
 
 
     // Start is called before the first frame update
@@ -116,7 +120,20 @@ public class NodeController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+        if (!gameManager.gameIsRunning)
+        {
+            return;
+        }
+
+        if(isPowerPellet && hasPellet)
+        {
+            powerPelletBlinkingTimer += Time.deltaTime;
+            if(powerPelletBlinkingTimer  >= 0.2f)
+            {
+                powerPelletBlinkingTimer = 0;
+                pelletSprite.enabled = !pelletSprite.enabled;
+            }
+        }
     }
 
     public GameObject GetNodeFromDirection(string direction)

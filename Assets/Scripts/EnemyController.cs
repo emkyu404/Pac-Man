@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-[RequireComponent(typeof(MovementController))]
+[RequireComponent(typeof(MovementController), typeof(Animator))]
 public class EnemyController : MonoBehaviour
 {
     public enum GhostNodeStateEnum
@@ -30,7 +30,7 @@ public class EnemyController : MonoBehaviour
     public GhostType ghostType;
 
 
-
+    public Animator animator;
     public GameObject ghostNodeLeft;
     public GameObject ghostNodeRight;
     public GameObject ghostNodeCenter;
@@ -54,8 +54,18 @@ public class EnemyController : MonoBehaviour
 
     public int scatterNodeIndex;
 
+    public bool isVisible = true;
+
+    public SpriteRenderer ghostSprite;
+    public SpriteRenderer eyesSprite;
+
+
+    public Color color;
+
     void Awake()
     {
+        ghostSprite.color = color;
+        animator = GetComponent<Animator>();
         scatterNodeIndex = 0;
         gameManager = GameObject.Find("GameManager").GetComponent<GameManager>();
         movementController = GetComponent<MovementController>();
@@ -141,7 +151,7 @@ public class EnemyController : MonoBehaviour
                 if(respawnState == GhostNodeStateEnum.centerNode)
                 {
                     ghostNodeState = respawnState;
-                    readyToLeaveHome = false;
+                    readyToLeaveHome = true;
                     direction = "down"; // if not set to down, will go to side nodes for no reason
                 }
                 else if(respawnState == GhostNodeStateEnum.leftNode)
@@ -152,18 +162,18 @@ public class EnemyController : MonoBehaviour
                 {
                     direction = "right";
                 }
-                else if (transform.position.x == ghostNodeLeft.transform.position.x && transform.position.y == ghostNodeLeft.transform.position.y 
-                    || transform.position.x == ghostNodeRight.transform.position.x && transform.position.y == ghostNodeRight.transform.position.y)
-                {
-                    ghostNodeState = respawnState;
-                    readyToLeaveHome = false;
-                    direction = "down";
-                }
-                // we are in the gameboard still, locate our our start node
-                else
-                {
-
-                }
+            }
+            else if (transform.position.x == ghostNodeRight.transform.position.x && transform.position.y == ghostNodeRight.transform.position.y
+                    || transform.position.x == ghostNodeLeft.transform.position.x && transform.position.y == ghostNodeLeft.transform.position.y)
+            {
+                ghostNodeState = respawnState;
+                readyToLeaveHome = true;
+                direction = "down";
+            }
+            // we are in the gameboard still, locate our our start node
+            else
+            {
+               
             }
             movementController.SetDirection(direction);
         }
@@ -171,6 +181,7 @@ public class EnemyController : MonoBehaviour
         {
             if (readyToLeaveHome)
             {
+                animator.SetBool("moving", true);
                 //if we are in the left home node, move to the center
                 if (ghostNodeState == GhostNodeStateEnum.leftNode) 
                 {
@@ -203,10 +214,61 @@ public class EnemyController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if(gameManager.gameIsRunning == false)
+        if (!gameManager.isPowerPelletRunning || ghostNodeState != GhostNodeStateEnum.movingInNodes)
+        {
+            isFrightened = false;
+        }
+
+        //Show sprite
+        if (isVisible)
+        {
+            if(ghostNodeState != GhostNodeStateEnum.respawning)
+            {
+                ghostSprite.enabled = true;
+            }
+            else
+            {
+                ghostSprite.enabled = false;
+            }
+            eyesSprite.enabled = true;
+
+        }
+        //hide Sprite
+        else
+        {
+            ghostSprite.enabled = false;
+            eyesSprite.enabled = false;
+        }
+
+        if (isFrightened)
+        {
+            animator.SetBool("frightened", true);
+            eyesSprite.enabled = false;
+            ghostSprite.color = new Color(255, 255, 255, 255);
+        }
+        else
+        {
+            animator.SetBool("frightened", false);
+            animator.SetBool("frightenedBlinking", false);
+            ghostSprite.color = color;
+        }
+
+        if (!gameManager.gameIsRunning)
         {
             return;
         }
+           
+        if(gameManager.powerPelletTimer - gameManager.currentPowerPelletTime <= 3)
+        {
+            Debug.Log("Should Blink !");
+            animator.SetBool("frightenedBlinking", true);
+        }
+        else
+        {
+            animator.SetBool("frightenedBlinking", false);
+        }
+        
+
         if(testRespawn == true)
         {
             ghostNodeState = GhostNodeStateEnum.respawning;
@@ -219,7 +281,18 @@ public class EnemyController : MonoBehaviour
         }
         else
         {
-            movementController.SetSpeed(3);
+            if (isFrightened)
+            {
+                movementController.SetSpeed(1);
+            }
+            else if(ghostNodeState == GhostNodeStateEnum.respawning)
+            {
+                movementController.SetSpeed(7);
+            }
+            else
+            {
+                movementController.SetSpeed(2);
+            }
         }
     }
 
@@ -430,7 +503,8 @@ public class EnemyController : MonoBehaviour
 
     public void Setup()
     {
-        
+        animator.SetBool("moving", false);
+        animator.SetBool("frightened", false);
         ghostNodeState = startState;
         //Reset our ghost back to their home position
         movementController.currentNode = startingNode;
@@ -454,6 +528,35 @@ public class EnemyController : MonoBehaviour
         {
             readyToLeaveHome = true;
         }
+
+        SetVisible(true);
+    }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if(collision.tag == "Player" && ghostNodeState != GhostNodeStateEnum.respawning)
+        {
+            if (isFrightened)
+            {
+                gameManager.GhostEaten();
+                ghostNodeState = GhostNodeStateEnum.respawning;
+            }
+            else
+            {
+                StartCoroutine(gameManager.PlayerEaten());
+            }
+        }
+    }
+
+
+    public void SetVisible(bool newIsVisible)
+    {
+        isVisible = newIsVisible;
+    }
+
+    public void SetFrightened(bool newFrightened)
+    {
+        isFrightened = newFrightened;
     }
 
 }
