@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
@@ -367,6 +368,8 @@ public class GameManager : MonoBehaviour
             newGame = true;
             //Display gameover text
             gameOverText.enabled = true;
+            yield return new WaitForSeconds(3);
+            SceneManager.LoadScene("GameOverScene");
             yield return new WaitForSeconds(3);
         }
 
